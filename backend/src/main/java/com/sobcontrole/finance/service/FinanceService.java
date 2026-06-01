@@ -440,7 +440,6 @@ public class FinanceService {
         }
         return spent.multiply(BigDecimal.valueOf(100)).divide(limit, 0, RoundingMode.HALF_UP).intValue();
     }
-}
 
     private CategoryResponse mapCategory(Category category) {
         return new CategoryResponse(
@@ -457,3 +456,4 @@ public class FinanceService {
             throw new IllegalArgumentException("As categorias padrao do sistema nao podem ser editadas ou excluidas.");
         }
     }
+}
