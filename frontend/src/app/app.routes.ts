@@ -6,6 +6,7 @@ import { ForgotPasswordComponent } from './features/auth/forgot-password.compone
 import { LoginComponent } from './features/auth/login.component';
 import { DashboardComponent } from './features/dashboard/dashboard.component';
 import { ExpenseEntryComponent } from './features/expenses/expense-entry.component';
+import { ProfileComponent } from './features/profile/profile.component';
 import { ReportsComponent } from './features/reports/reports.component';
 import { AppShellComponent } from './layout/app-shell.component';
 
@@ -19,6 +20,7 @@ export const appRoutes: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
       { path: 'dashboard', component: DashboardComponent },
+      { path: 'perfil', component: ProfileComponent },
       { path: 'lancamentos', component: ExpenseEntryComponent },
       { path: 'alertas', component: AlertsComponent },
       { path: 'relatorios', component: ReportsComponent },

@@ -368,6 +368,7 @@ export class AppShellComponent {
 
   private readonly baseMenu = [
     { path: '/dashboard', label: 'Dashboard', icon: 'space_dashboard' },
+    { path: '/perfil', label: 'Perfil', icon: 'person' },
     { path: '/lancamentos', label: 'Lançar gasto', icon: 'add_circle' },
     { path: '/relatorios', label: 'Relatórios', icon: 'bar_chart' },
     { path: '/alertas', label: 'Alertas', icon: 'notifications' },

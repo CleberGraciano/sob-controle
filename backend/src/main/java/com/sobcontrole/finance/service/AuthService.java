@@ -5,6 +5,7 @@ import com.sobcontrole.finance.domain.Role;
 import com.sobcontrole.finance.domain.User;
 import com.sobcontrole.finance.dto.AuthRequest;
 import com.sobcontrole.finance.dto.AuthResponse;
+import com.sobcontrole.finance.dto.ChangePasswordRequest;
 import com.sobcontrole.finance.dto.ForgotPasswordRequest;
 import com.sobcontrole.finance.dto.RegisterRequest;
 import com.sobcontrole.finance.repository.UserRepository;
@@ -29,6 +30,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final EmailService emailService;
     private final DefaultCategoryService defaultCategoryService;
+    private final CurrentUserService currentUserService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public AuthService(UserRepository userRepository,
@@ -36,13 +38,15 @@ public class AuthService {
                        AuthenticationManager authenticationManager,
                        JwtService jwtService,
                        EmailService emailService,
-                       DefaultCategoryService defaultCategoryService) {
+                       DefaultCategoryService defaultCategoryService,
+                       CurrentUserService currentUserService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.emailService = emailService;
         this.defaultCategoryService = defaultCategoryService;
+        this.currentUserService = currentUserService;
     }
 
     @Transactional
@@ -88,6 +92,20 @@ public class AuthService {
         String newPassword = generateTemporaryPassword(10);
         user.setPassword(passwordEncoder.encode(newPassword));
         emailService.sendNewPassword(user.getEmail(), user.getFullName(), newPassword);
+    }
+
+    @Transactional
+    public void changePassword(ChangePasswordRequest request) {
+        User user = currentUserService.requireCurrentUser();
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Senha atual incorreta");
+        }
+
+        if (request.currentPassword().equals(request.newPassword())) {
+            throw new IllegalArgumentException("A nova senha deve ser diferente da senha atual");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.newPassword()));
     }
 
     private String generateTemporaryPassword(int length) {
