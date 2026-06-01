@@ -2,6 +2,7 @@ import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, OnInit, signal } from '@angular/core';
 import { BaseChartDirective } from 'ng2-charts';
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
+import { firstValueFrom } from 'rxjs';
 import { MonthlyReport } from '../../core/models/finance.models';
 import { FinanceService } from '../../core/services/finance.service';
 import { ReportPdfService } from '../../core/services/report-pdf.service';
@@ -14,6 +15,7 @@ Chart.register(...registerables);
   imports: [CommonModule, CurrencyPipe, DatePipe, BaseChartDirective],
   template: `
     <div *ngIf="error()" class="feedback error">{{ error() }}</div>
+    <div *ngIf="success()" class="feedback success">{{ success() }}</div>
 
     <div class="reports-grid" *ngIf="report() as data">
       <section class="report-hero glass-card">
@@ -22,7 +24,12 @@ Chart.register(...registerables);
           <h2 class="section-title">Relatório {{ data.reference }}</h2>
           <p class="section-subtitle">Resumo do período com distribuição, insight e sugestões de economia.</p>
         </div>
-        <button type="button" (click)="exportPdf()">Exportar PDF</button>
+        <div class="hero-actions">
+          <button type="button" class="secondary-action" (click)="sendByEmail()" [disabled]="sendingEmail()">
+            {{ sendingEmail() ? 'Enviando...' : 'Enviar para meu email' }}
+          </button>
+          <button type="button" (click)="exportPdf()">Exportar PDF</button>
+        </div>
       </section>
 
       <section class="metrics">
@@ -118,6 +125,11 @@ Chart.register(...registerables);
       color: #9f1239;
     }
 
+    .success {
+      background: rgba(16, 185, 129, 0.12);
+      color: #047857;
+    }
+
     .reports-grid {
       display: grid;
       gap: 22px;
@@ -137,6 +149,13 @@ Chart.register(...registerables);
       gap: 16px;
     }
 
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
     button {
       border: none;
       border-radius: 16px;
@@ -145,6 +164,15 @@ Chart.register(...registerables);
       color: white;
       font-weight: 800;
       cursor: pointer;
+    }
+
+    button[disabled] {
+      opacity: 0.7;
+      cursor: wait;
+    }
+
+    .secondary-action {
+      background: linear-gradient(135deg, #14213d, #2c3e67);
     }
 
     .metrics {
@@ -290,6 +318,8 @@ Chart.register(...registerables);
 export class ReportsComponent implements OnInit {
   protected readonly report = signal<MonthlyReport | null>(null);
   protected readonly error = signal('');
+  protected readonly success = signal('');
+  protected readonly sendingEmail = signal(false);
 
   protected barChartData: ChartConfiguration<'bar'>['data'] = {
     labels: [],
@@ -318,6 +348,7 @@ export class ReportsComponent implements OnInit {
   ngOnInit(): void {
     this.financeService.getMonthlyReport().subscribe({
       next: (report) => {
+        this.error.set('');
         this.report.set(report);
         this.barChartData = {
           labels: report.categories.map((category) => category.category),
@@ -335,5 +366,33 @@ export class ReportsComponent implements OnInit {
     }
 
     this.reportPdfService.exportMonthlyReport(report);
+  }
+
+  protected async sendByEmail(): Promise<void> {
+    const report = this.report();
+    if (!report || this.sendingEmail()) {
+      return;
+    }
+
+    this.error.set('');
+    this.success.set('');
+    this.sendingEmail.set(true);
+
+    try {
+      const payload = await this.reportPdfService.buildMonthlyReportEmailPayload(report);
+      await firstValueFrom(this.financeService.sendMonthlyReportEmail({
+        reference: report.reference,
+        fileName: payload.fileName,
+        pdfBase64: payload.pdfBase64
+      }));
+      this.success.set('Relatorio enviado para o seu email com o PDF em anexo.');
+    } catch (error: unknown) {
+      const message = typeof error === 'object' && error && 'error' in error
+        ? (error as { error?: { message?: string } }).error?.message
+        : undefined;
+      this.error.set(message ?? 'Nao foi possivel enviar o relatorio por email.');
+    } finally {
+      this.sendingEmail.set(false);
+    }
   }
 }

@@ -60,6 +60,10 @@ export class FinanceService {
     });
   }
 
+  sendMonthlyReportEmail(payload: { reference: string; fileName: string; pdfBase64: string }): Observable<void> {
+    return this.http.post<void>(`${environment.apiUrl}/reports/email`, payload);
+  }
+
   getAdminSettings(): Observable<AdminSettings> {
     return this.http.get<AdminSettings>(`${environment.apiUrl}/admin/settings`);
   }

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Expense, MonthlyReport } from '../models/finance.models';
+import { MonthlyReport } from '../models/finance.models';
 import { BrandingService } from './branding.service';
 
 @Injectable({ providedIn: 'root' })
@@ -9,10 +9,24 @@ export class ReportPdfService {
   constructor(private readonly brandingService: BrandingService) {}
 
   exportMonthlyReport(report: MonthlyReport): void {
+    const { pdf, fileName } = this.buildMonthlyReportDocument(report);
+    pdf.save(fileName);
+  }
+
+  async buildMonthlyReportEmailPayload(report: MonthlyReport): Promise<{ fileName: string; pdfBase64: string }> {
+    const { pdf, fileName } = this.buildMonthlyReportDocument(report);
+    const blob = pdf.output('blob');
+    const pdfBase64 = await this.blobToBase64(blob);
+
+    return { fileName, pdfBase64 };
+  }
+
+  private buildMonthlyReportDocument(report: MonthlyReport): { pdf: jsPDF; fileName: string } {
     const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
     const primary = [24, 143, 105] as const;
     const accent = [20, 33, 61] as const;
     const branding = this.brandingService.branding();
+    const fileName = `${this.slugify(branding.siteName)}-relatorio-${report.reference}.pdf`;
 
     pdf.setFillColor(primary[0], primary[1], primary[2]);
     pdf.roundedRect(32, 32, 531, 92, 18, 18, 'F');
@@ -155,7 +169,24 @@ export class ReportPdfService {
       receiptY += 152;
     });
 
-    pdf.save(`${this.slugify(branding.siteName)}-relatorio-${report.reference}.pdf`);
+    return { pdf, fileName };
+  }
+
+  private blobToBase64(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result;
+        if (typeof result !== 'string') {
+          reject(new Error('Nao foi possivel converter o PDF para envio.'));
+          return;
+        }
+
+        resolve(result.replace(/^data:application\/pdf;base64,/, ''));
+      };
+      reader.onerror = () => reject(new Error('Nao foi possivel converter o PDF para envio.'));
+      reader.readAsDataURL(blob);
+    });
   }
 
   private money(value: number): string {
