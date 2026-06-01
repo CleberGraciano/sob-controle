@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { BrandingService } from './core/services/branding.service';
 
 @Component({
   selector: 'app-root',
@@ -7,4 +8,10 @@ import { RouterOutlet } from '@angular/router';
   imports: [RouterOutlet],
   template: '<router-outlet />'
 })
-export class AppComponent {}
+export class AppComponent {
+  private readonly brandingService = inject(BrandingService);
+
+  constructor() {
+    this.brandingService.load();
+  }
+}

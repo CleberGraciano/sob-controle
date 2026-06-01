@@ -2,20 +2,24 @@ import { Injectable } from '@angular/core';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Expense, MonthlyReport } from '../models/finance.models';
+import { BrandingService } from './branding.service';
 
 @Injectable({ providedIn: 'root' })
 export class ReportPdfService {
+  constructor(private readonly brandingService: BrandingService) {}
+
   exportMonthlyReport(report: MonthlyReport): void {
     const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
     const primary = [24, 143, 105] as const;
     const accent = [20, 33, 61] as const;
+    const branding = this.brandingService.branding();
 
     pdf.setFillColor(primary[0], primary[1], primary[2]);
     pdf.roundedRect(32, 32, 531, 92, 18, 18, 'F');
     pdf.setTextColor(255, 255, 255);
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(24);
-    pdf.text('SOB Controle', 56, 72);
+    pdf.text(branding.siteName, 56, 72);
     pdf.setFontSize(14);
     pdf.setFont('helvetica', 'normal');
     pdf.text(`Relatorio mensal ${report.reference}`, 56, 100);
@@ -151,7 +155,7 @@ export class ReportPdfService {
       receiptY += 152;
     });
 
-    pdf.save(`sob-controle-relatorio-${report.reference}.pdf`);
+    pdf.save(`${this.slugify(branding.siteName)}-relatorio-${report.reference}.pdf`);
   }
 
   private money(value: number): string {
@@ -172,5 +176,14 @@ export class ReportPdfService {
     }
 
     return 'JPEG';
+  }
+
+  private slugify(value: string): string {
+    return value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
   }
 }

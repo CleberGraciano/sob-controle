@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
+import { BrandingService } from '../../core/services/branding.service';
 import { FinanceService } from '../../core/services/finance.service';
 
 @Component({
@@ -261,7 +262,11 @@ export class AdminSettingsComponent implements OnInit {
     senderName: ['', Validators.required]
   });
 
-  constructor(private readonly formBuilder: FormBuilder, private readonly financeService: FinanceService) {}
+  constructor(
+    private readonly formBuilder: FormBuilder,
+    private readonly financeService: FinanceService,
+    private readonly brandingService: BrandingService
+  ) {}
 
   ngOnInit(): void {
     this.financeService.getAdminSettings().subscribe({
@@ -282,7 +287,10 @@ export class AdminSettingsComponent implements OnInit {
     this.financeService.updateAdminSettings(this.form.getRawValue())
       .pipe(finalize(() => this.saving.set(false)))
       .subscribe({
-        next: () => this.message.set('Configurações salvas com sucesso.'),
+        next: (settings) => {
+          this.brandingService.applyAdminSettings(settings);
+          this.message.set('Configurações salvas com sucesso.');
+        },
         error: (error) => this.error.set(error.error?.message ?? 'Nao foi possivel salvar as configuracoes.')
       });
   }

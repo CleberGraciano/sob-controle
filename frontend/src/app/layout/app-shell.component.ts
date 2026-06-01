@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../core/services/auth.service';
+import { BrandingService } from '../core/services/branding.service';
 
 @Component({
   selector: 'app-shell',
@@ -14,7 +15,7 @@ import { AuthService } from '../core/services/auth.service';
       <aside class="sidebar glass-card" [class.open]="mobileMenuOpen()">
         <div class="sidebar-top">
           <div>
-            <img class="brand-logo" src="assets/logo.svg" alt="Sob Controle">
+            <img class="brand-logo" [src]="branding().logoUrl" [alt]="branding().siteName">
             <p>Controle diário com visão prática e alertas inteligentes.</p>
           </div>
 
@@ -363,8 +364,10 @@ import { AuthService } from '../core/services/auth.service';
 })
 export class AppShellComponent {
   private readonly authService = inject(AuthService);
+  private readonly brandingService = inject(BrandingService);
   private readonly router = inject(Router);
   protected readonly mobileMenuOpen = signal(false);
+  protected readonly branding = this.brandingService.branding;
 
   private readonly baseMenu = [
     { path: '/dashboard', label: 'Dashboard', icon: 'space_dashboard' },

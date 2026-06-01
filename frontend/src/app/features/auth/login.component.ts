@@ -1,9 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
+import { BrandingService } from '../../core/services/branding.service';
 
 @Component({
   selector: 'app-login',
@@ -12,9 +13,9 @@ import { AuthService } from '../../core/services/auth.service';
   template: `
     <div class="auth-page page-shell">
       <section class="hero-panel">
-        <img class="hero-logo" src="assets/logo.svg" alt="Sob Controle">
+        <img class="hero-logo" [src]="branding().logoUrl" [alt]="branding().siteName">
         <span class="chip">Controle diário, rápido e visual</span>
-        <h1>Sua rotina financeira em uma interface feita para registrar gastos na hora em que acontecem.</h1>
+        <h1>{{ branding().siteName }} coloca sua rotina financeira em uma interface feita para registrar gastos na hora em que acontecem.</h1>
         <p>Dashboard vivo, limites por categoria, alertas preventivos, relatórios mensais e sugestões de economia com IA.</p>
 
         <div class="hero-cards">
@@ -246,10 +247,12 @@ import { AuthService } from '../../core/services/auth.service';
   `]
 })
 export class LoginComponent {
+  private readonly brandingService = inject(BrandingService);
   protected readonly mode = signal<'login' | 'register'>('login');
   protected readonly loading = signal(false);
   protected readonly error = signal('');
   protected readonly message = signal('');
+  protected readonly branding = this.brandingService.branding;
 
   protected readonly loginForm = this.formBuilder.group({
     email: ['', [Validators.required, Validators.email]],
