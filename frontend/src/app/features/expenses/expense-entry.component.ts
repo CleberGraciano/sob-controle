@@ -158,6 +158,7 @@ import { FinanceService } from '../../core/services/finance.service';
               <div class="mini-item-actions">
                 <strong>{{ expense.amount | currency:'BRL' }}</strong>
                 <button type="button" class="text-button" (click)="startExpenseEdit(expense)">Editar</button>
+                <button type="button" class="text-button danger-button" (click)="confirmDeleteExpense(expense)">Excluir</button>
               </div>
             </article>
           </div>
@@ -245,6 +246,11 @@ import { FinanceService } from '../../core/services/finance.service';
       padding: 10px 14px;
       border-radius: 12px;
       font-weight: 700;
+    }
+
+    .danger-button {
+      color: #9f1239;
+      border-color: rgba(159, 18, 57, 0.2);
     }
 
     .field-row,
@@ -567,6 +573,27 @@ export class ExpenseEntryComponent implements OnInit {
   protected cancelExpenseEdit(): void {
     this.editingExpenseId.set(null);
     this.resetExpenseForm();
+  }
+
+  protected confirmDeleteExpense(expense: Expense): void {
+    const confirmed = window.confirm(`Excluir o lançamento "${expense.itemName}"? Essa ação não pode ser desfeita.`);
+    if (!confirmed) {
+      return;
+    }
+
+    this.error.set('');
+    this.message.set('');
+
+    this.financeService.deleteExpense(expense.id).subscribe({
+      next: () => {
+        if (this.editingExpenseId() === expense.id) {
+          this.cancelExpenseEdit();
+        }
+        this.message.set('Lançamento excluido com sucesso.');
+        this.refreshCollections();
+      },
+      error: (error) => this.error.set(error.error?.message ?? 'Falha ao excluir lançamento.')
+    });
   }
 
   protected paymentLabel(method: PaymentMethod): string {

@@ -15,6 +15,7 @@ export interface Category {
   monthlyLimit: number;
   colorHex: string;
   iconKey: string;
+  systemDefined: boolean;
 }
 
 export interface Card {

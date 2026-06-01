@@ -7,6 +7,7 @@ public record CategoryResponse(
         String name,
         BigDecimal monthlyLimit,
         String colorHex,
-        String iconKey
+        String iconKey,
+        boolean systemDefined
 ) {
 }

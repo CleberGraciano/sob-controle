@@ -66,7 +66,10 @@ import { FinanceService } from '../../core/services/finance.service';
               <strong>{{ card.name }}</strong>
               <small>{{ card.brand }} • **** {{ card.lastDigits }} • {{ card.credit ? 'Crédito' : 'Débito' }}</small>
             </div>
-            <button type="button" class="text-button" (click)="startEdit(card)">Editar</button>
+            <div class="item-actions">
+              <button type="button" class="text-button" (click)="startEdit(card)">Editar</button>
+              <button type="button" class="text-button danger-button" (click)="confirmDelete(card)">Excluir</button>
+            </div>
           </article>
         </div>
 
@@ -155,6 +158,18 @@ import { FinanceService } from '../../core/services/finance.service';
       width: auto;
       padding: 10px 14px;
       border-radius: 12px;
+    }
+
+    .danger-button {
+      color: #9f1239;
+      border-color: rgba(159, 18, 57, 0.2);
+    }
+
+    .item-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
     }
 
     .list-stack {
@@ -265,6 +280,27 @@ export class CardsComponent implements OnInit {
   protected cancelEdit(): void {
     this.editingCardId.set(null);
     this.form.patchValue({ name: '', brand: '', lastDigits: '', credit: true });
+  }
+
+  protected confirmDelete(card: Card): void {
+    const confirmed = window.confirm(`Excluir o cartão "${card.name}"? Essa ação não pode ser desfeita.`);
+    if (!confirmed) {
+      return;
+    }
+
+    this.error.set('');
+    this.message.set('');
+
+    this.financeService.deleteCard(card.id).subscribe({
+      next: () => {
+        if (this.editingCardId() === card.id) {
+          this.cancelEdit();
+        }
+        this.message.set('Cartão excluido.');
+        this.loadCards();
+      },
+      error: (error) => this.error.set(error.error?.message ?? 'Falha ao excluir cartão.')
+    });
   }
 
   private loadCards(): void {

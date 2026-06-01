@@ -70,9 +70,16 @@ import { FinanceService } from '../../core/services/finance.service';
               <div>
                 <strong>{{ category.name }}</strong>
                 <small>Limite {{ category.monthlyLimit | currency:'BRL' }} • Ícone {{ category.iconKey }}</small>
+                <small *ngIf="category.systemDefined">Categoria padrão do sistema</small>
               </div>
             </div>
-            <button type="button" class="text-button" (click)="startEdit(category)">Editar</button>
+            <div class="item-actions" *ngIf="!category.systemDefined; else lockedCategory">
+              <button type="button" class="text-button" (click)="startEdit(category)">Editar</button>
+              <button type="button" class="text-button danger-button" (click)="confirmDelete(category)">Excluir</button>
+            </div>
+            <ng-template #lockedCategory>
+              <span class="locked-badge">Bloqueada</span>
+            </ng-template>
           </article>
         </div>
 
@@ -149,6 +156,18 @@ import { FinanceService } from '../../core/services/finance.service';
       border-radius: 12px;
     }
 
+    .danger-button {
+      color: #9f1239;
+      border-color: rgba(159, 18, 57, 0.2);
+    }
+
+    .item-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
     .color-picker-field {
       display: flex;
       align-items: center;
@@ -206,6 +225,14 @@ import { FinanceService } from '../../core/services/finance.service';
       display: block;
       margin-top: 4px;
       color: var(--muted);
+    }
+
+    .locked-badge {
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: rgba(20, 33, 61, 0.06);
+      color: var(--muted);
+      font-weight: 700;
     }
 
     .feedback {
@@ -288,6 +315,11 @@ export class CategoriesComponent implements OnInit {
   }
 
   protected startEdit(category: Category): void {
+    if (category.systemDefined) {
+      this.error.set('As categorias padrao do sistema nao podem ser editadas.');
+      return;
+    }
+
     this.editingCategoryId.set(category.id);
     this.form.patchValue({
       name: category.name,
@@ -304,6 +336,32 @@ export class CategoriesComponent implements OnInit {
       monthlyLimit: 0,
       colorHex: '#2BB0ED',
       iconKey: 'bookmark'
+    });
+  }
+
+  protected confirmDelete(category: Category): void {
+    if (category.systemDefined) {
+      this.error.set('As categorias padrao do sistema nao podem ser excluidas.');
+      return;
+    }
+
+    const confirmed = window.confirm(`Excluir a categoria "${category.name}"? Essa ação não pode ser desfeita.`);
+    if (!confirmed) {
+      return;
+    }
+
+    this.error.set('');
+    this.message.set('');
+
+    this.financeService.deleteCategory(category.id).subscribe({
+      next: () => {
+        if (this.editingCategoryId() === category.id) {
+          this.cancelEdit();
+        }
+        this.message.set('Categoria excluida.');
+        this.loadCategories();
+      },
+      error: (error) => this.error.set(error.error?.message ?? 'Falha ao excluir categoria.')
     });
   }
 

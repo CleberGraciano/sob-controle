@@ -54,7 +54,13 @@ public class FinanceService {
     public List<CategoryResponse> listCategories() {
         User user = currentUserService.requireCurrentUser();
         return categoryRepository.findAllByUserOrderByNameAsc(user).stream()
-                .map(category -> new CategoryResponse(category.getId(), category.getName(), category.getMonthlyLimit(), category.getColorHex(), category.getIconKey()))
+            .map(category -> new CategoryResponse(
+                category.getId(),
+                category.getName(),
+                category.getMonthlyLimit(),
+                category.getColorHex(),
+                category.getIconKey(),
+                category.isSystemDefined()))
                 .toList();
     }
 
@@ -66,9 +72,10 @@ public class FinanceService {
                 .monthlyLimit(request.monthlyLimit())
                 .colorHex(request.colorHex())
                 .iconKey(request.iconKey())
+            .systemDefined(false)
                 .user(user)
                 .build());
-        return new CategoryResponse(category.getId(), category.getName(), category.getMonthlyLimit(), category.getColorHex(), category.getIconKey());
+        return mapCategory(category);
     }
 
     @Transactional
@@ -78,12 +85,30 @@ public class FinanceService {
                 .filter(candidate -> candidate.getUser().getId().equals(user.getId()))
                 .orElseThrow(() -> new IllegalArgumentException("Category not found"));
 
+        ensureCategoryEditable(category);
+
         category.setName(request.name());
         category.setMonthlyLimit(request.monthlyLimit());
         category.setColorHex(request.colorHex());
         category.setIconKey(request.iconKey());
 
-        return new CategoryResponse(category.getId(), category.getName(), category.getMonthlyLimit(), category.getColorHex(), category.getIconKey());
+        return mapCategory(category);
+    }
+
+    @Transactional
+    public void deleteCategory(Long categoryId) {
+        User user = currentUserService.requireCurrentUser();
+        Category category = categoryRepository.findById(categoryId)
+                .filter(candidate -> candidate.getUser().getId().equals(user.getId()))
+                .orElseThrow(() -> new IllegalArgumentException("Category not found"));
+
+        ensureCategoryEditable(category);
+
+        if (expenseRepository.existsByUserAndCategory(user, category)) {
+            throw new IllegalArgumentException("Nao e possivel excluir uma categoria com lancamentos vinculados.");
+        }
+
+        categoryRepository.delete(category);
     }
 
     @Transactional(readOnly = true)
@@ -122,6 +147,17 @@ public class FinanceService {
         return new CardResponse(card.getId(), card.getName(), card.getBrand(), card.getLastDigits(), card.isCredit());
     }
 
+    @Transactional
+    public void deleteCard(Long cardId) {
+        User user = currentUserService.requireCurrentUser();
+        Card card = cardRepository.findById(cardId)
+                .filter(candidate -> candidate.getUser().getId().equals(user.getId()))
+                .orElseThrow(() -> new IllegalArgumentException("Card not found"));
+
+        expenseRepository.findAllByUserAndCard(user, card).forEach(expense -> expense.setCard(null));
+        cardRepository.delete(card);
+    }
+
     @Transactional(readOnly = true)
     public List<ExpenseResponse> listRecentExpenses() {
         User user = currentUserService.requireCurrentUser();
@@ -154,6 +190,17 @@ public class FinanceService {
 
         user.setPreferredPaymentMethod(resolveMostUsedPaymentMethod(user));
         return mapExpense(expense);
+    }
+
+    @Transactional
+    public void deleteExpense(Long expenseId) {
+        User user = currentUserService.requireCurrentUser();
+        Expense expense = expenseRepository.findById(expenseId)
+                .filter(candidate -> candidate.getUser().getId().equals(user.getId()))
+                .orElseThrow(() -> new IllegalArgumentException("Expense not found"));
+
+        expenseRepository.delete(expense);
+        user.setPreferredPaymentMethod(resolveMostUsedPaymentMethod(user));
     }
 
     @Transactional
@@ -394,3 +441,19 @@ public class FinanceService {
         return spent.multiply(BigDecimal.valueOf(100)).divide(limit, 0, RoundingMode.HALF_UP).intValue();
     }
 }
+
+    private CategoryResponse mapCategory(Category category) {
+        return new CategoryResponse(
+                category.getId(),
+                category.getName(),
+                category.getMonthlyLimit(),
+                category.getColorHex(),
+                category.getIconKey(),
+                category.isSystemDefined());
+    }
+
+    private void ensureCategoryEditable(Category category) {
+        if (category.isSystemDefined()) {
+            throw new IllegalArgumentException("As categorias padrao do sistema nao podem ser editadas ou excluidas.");
+        }
+    }

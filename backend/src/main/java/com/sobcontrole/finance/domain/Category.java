@@ -41,6 +41,9 @@ public class Category {
     @Column(nullable = false)
     private String iconKey;
 
+    @Column(nullable = false)
+    private boolean systemDefined;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id")
     private User user;

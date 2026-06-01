@@ -4,6 +4,9 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AdminSettings, Card, Category, DashboardData, Expense, MonthlyReport, PaymentMethod } from '../models/finance.models';
 
+type CategoryPayload = Omit<Category, 'id' | 'systemDefined'>;
+type CardPayload = Omit<Card, 'id'>;
+
 @Injectable({ providedIn: 'root' })
 export class FinanceService {
   constructor(private readonly http: HttpClient) {}
@@ -18,24 +21,32 @@ export class FinanceService {
     return this.http.get<Category[]>(`${environment.apiUrl}/categories`);
   }
 
-  createCategory(payload: Omit<Category, 'id'>): Observable<Category> {
+  createCategory(payload: CategoryPayload): Observable<Category> {
     return this.http.post<Category>(`${environment.apiUrl}/categories`, payload);
   }
 
-  updateCategory(categoryId: number, payload: Omit<Category, 'id'>): Observable<Category> {
+  updateCategory(categoryId: number, payload: CategoryPayload): Observable<Category> {
     return this.http.put<Category>(`${environment.apiUrl}/categories/${categoryId}`, payload);
+  }
+
+  deleteCategory(categoryId: number): Observable<void> {
+    return this.http.delete<void>(`${environment.apiUrl}/categories/${categoryId}`);
   }
 
   getCards(): Observable<Card[]> {
     return this.http.get<Card[]>(`${environment.apiUrl}/cards`);
   }
 
-  createCard(payload: Omit<Card, 'id'>): Observable<Card> {
+  createCard(payload: CardPayload): Observable<Card> {
     return this.http.post<Card>(`${environment.apiUrl}/cards`, payload);
   }
 
-  updateCard(cardId: number, payload: Omit<Card, 'id'>): Observable<Card> {
+  updateCard(cardId: number, payload: CardPayload): Observable<Card> {
     return this.http.put<Card>(`${environment.apiUrl}/cards/${cardId}`, payload);
+  }
+
+  deleteCard(cardId: number): Observable<void> {
+    return this.http.delete<void>(`${environment.apiUrl}/cards/${cardId}`);
   }
 
   getRecentExpenses(): Observable<Expense[]> {
@@ -52,6 +63,10 @@ export class FinanceService {
 
   updateExpense(expenseId: number, payload: Record<string, unknown>): Observable<Expense> {
     return this.http.put<Expense>(`${environment.apiUrl}/expenses/${expenseId}`, payload);
+  }
+
+  deleteExpense(expenseId: number): Observable<void> {
+    return this.http.delete<void>(`${environment.apiUrl}/expenses/${expenseId}`);
   }
 
   getMonthlyReport(year?: number, month?: number): Observable<MonthlyReport> {
