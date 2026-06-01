@@ -28,10 +28,19 @@ import { FinanceService } from '../../core/services/finance.service';
               Nome do site
               <input formControlName="siteName" type="text">
             </label>
-            <label>
-              URL da logo
-              <input formControlName="logoUrl" type="text">
-            </label>
+            <div class="upload-field">
+              <span class="upload-label">Logo do sistema</span>
+              <label class="upload-button">
+                <input type="file" accept="image/*" (change)="onLogoSelected($event)">
+                <span class="material-icons-outlined">upload</span>
+                <span>{{ form.controls.logoUrl.value ? 'Trocar logo' : 'Anexar nova logo' }}</span>
+              </label>
+              <small class="upload-hint">Use PNG, JPG ou SVG com até 3 MB.</small>
+              <div class="logo-preview" *ngIf="form.controls.logoUrl.value">
+                <img [src]="form.controls.logoUrl.value" alt="Logo do sistema">
+                <button type="button" class="secondary-button" (click)="clearLogo()">Remover logo</button>
+              </div>
+            </div>
           </div>
 
           <div class="field-row">
@@ -80,6 +89,9 @@ import { FinanceService } from '../../core/services/finance.service';
         <span class="chip">Prévia visual</span>
         <h3>{{ form.controls.siteName.value || 'SOB Controle' }}</h3>
         <p>Este painel centraliza identidade visual e toda a infraestrutura de envio de email do produto.</p>
+        <div class="preview-logo" *ngIf="form.controls.logoUrl.value">
+          <img [src]="form.controls.logoUrl.value" alt="Logo atual do sistema">
+        </div>
         <div class="preview-brand" [style.background]="form.controls.primaryColor.value || '#188f69'">
           <span>Identidade</span>
           <strong>{{ form.controls.siteName.value || 'SOB' }}</strong>
@@ -128,10 +140,77 @@ import { FinanceService } from '../../core/services/finance.service';
       cursor: pointer;
     }
 
+    .secondary-button {
+      width: auto;
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+
     .field-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 14px;
+    }
+
+    .upload-field {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .upload-label {
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .upload-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 54px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 1px dashed var(--line);
+      background: rgba(255, 255, 255, 0.78);
+      color: var(--ink);
+      cursor: pointer;
+    }
+
+    .upload-button input {
+      display: none;
+    }
+
+    .upload-hint {
+      color: var(--muted);
+    }
+
+    .logo-preview {
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(20, 33, 61, 0.08);
+      background: rgba(255, 255, 255, 0.7);
+      justify-items: start;
+    }
+
+    .logo-preview img,
+    .preview-logo img {
+      max-width: min(100%, 220px);
+      max-height: 96px;
+      object-fit: contain;
+    }
+
+    .preview-logo {
+      display: grid;
+      place-items: start;
+      margin-top: 18px;
+      padding: 18px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(20, 33, 61, 0.06);
     }
 
     .preview-brand {
@@ -206,5 +285,32 @@ export class AdminSettingsComponent implements OnInit {
         next: () => this.message.set('Configurações salvas com sucesso.'),
         error: (error) => this.error.set(error.error?.message ?? 'Nao foi possivel salvar as configuracoes.')
       });
+  }
+
+  protected onLogoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    if (file.size > 3 * 1024 * 1024) {
+      this.error.set('A logo deve ter no máximo 3 MB.');
+      input.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.form.patchValue({ logoUrl: typeof reader.result === 'string' ? reader.result : '' });
+      this.error.set('');
+    };
+    reader.onerror = () => this.error.set('Nao foi possivel ler a logo selecionada.');
+    reader.readAsDataURL(file);
+    input.value = '';
+  }
+
+  protected clearLogo(): void {
+    this.form.patchValue({ logoUrl: '' });
   }
 }
