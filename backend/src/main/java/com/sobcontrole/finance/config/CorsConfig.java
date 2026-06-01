@@ -1,5 +1,6 @@
 package com.sobcontrole.finance.config;
 
+import java.net.URI;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -16,10 +17,10 @@ public class CorsConfig {
     CorsConfigurationSource corsConfigurationSource(ApplicationProperties applicationProperties) {
         CorsConfiguration config = new CorsConfiguration();
         Set<String> allowedOrigins = new LinkedHashSet<>(List.of(
-            applicationProperties.frontendUrl(),
-            "http://localhost:4200",
-            "http://127.0.0.1:4200"
+                "http://localhost:4200",
+                "http://127.0.0.1:4200"
         ));
+        allowedOrigins.addAll(resolveDomainVariants(applicationProperties.frontendUrl()));
         config.setAllowedOrigins(List.copyOf(allowedOrigins));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
@@ -28,5 +29,25 @@ public class CorsConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
+    }
+
+    private List<String> resolveDomainVariants(String frontendUrl) {
+        try {
+            URI uri = URI.create(frontendUrl);
+            String scheme = uri.getScheme();
+            String host = uri.getHost();
+
+            if (scheme == null || host == null || host.isBlank()) {
+                return List.of(frontendUrl);
+            }
+
+            if (host.startsWith("www.")) {
+                return List.of(frontendUrl, scheme + "://" + host.substring(4));
+            }
+
+            return List.of(frontendUrl, scheme + "://www." + host);
+        } catch (IllegalArgumentException exception) {
+            return List.of(frontendUrl);
+        }
     }
 }
