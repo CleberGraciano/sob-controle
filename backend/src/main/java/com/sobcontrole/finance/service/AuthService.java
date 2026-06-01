@@ -96,7 +96,10 @@ public class AuthService {
 
     @Transactional
     public void changePassword(ChangePasswordRequest request) {
-        User user = currentUserService.requireCurrentUser();
+        User currentUser = currentUserService.requireCurrentUser();
+        User user = userRepository.findById(currentUser.getId())
+                .orElseThrow(() -> new IllegalStateException("Authenticated user not found"));
+
         if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
             throw new IllegalArgumentException("Senha atual incorreta");
         }
