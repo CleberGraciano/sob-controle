@@ -31,7 +31,9 @@ export interface Expense {
   amount: number;
   purchaseDate: string;
   paymentMethod: PaymentMethod;
+  categoryId: number;
   category: string;
+  cardId?: number | null;
   cardLabel?: string | null;
   installmentPurchase: boolean;
   installmentCount?: number | null;

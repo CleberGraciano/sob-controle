@@ -12,13 +12,12 @@ import { AuthService } from '../core/services/auth.service';
       <aside class="sidebar glass-card">
         <div class="sidebar-top">
           <div>
-            <div class="brand-badge">SC</div>
-            <h1>SOB Controle</h1>
+            <img class="brand-logo" src="assets/logo.svg" alt="Sob Controle">
             <p>Controle diário com visão prática e alertas inteligentes.</p>
           </div>
 
           <nav>
-            <a *ngFor="let item of menu" [routerLink]="item.path" routerLinkActive="active">
+            <a *ngFor="let item of menu()" [routerLink]="item.path" routerLinkActive="active">
               <span class="material-icons-outlined">{{ item.icon }}</span>
               <span>{{ item.label }}</span>
             </a>
@@ -80,26 +79,16 @@ import { AuthService } from '../core/services/auth.service';
       align-content: start;
     }
 
-    .brand-badge {
-      width: 52px;
-      height: 52px;
-      display: grid;
-      place-items: center;
-      border-radius: 18px;
-      background: linear-gradient(135deg, #1fd6a1, #f77f39);
-      font-family: 'Space Grotesk', sans-serif;
-      font-weight: 700;
-      margin-bottom: 18px;
-    }
-
-    .sidebar h1 {
-      margin: 0;
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 1.7rem;
+    .brand-logo {
+      display: block;
+      width: min(220px, 100%);
+      height: auto;
+      margin-bottom: 16px;
+      filter: drop-shadow(0 18px 36px rgba(15, 23, 42, 0.22));
     }
 
     .sidebar p {
-      margin: 10px 0 28px;
+      margin: 0 0 28px;
       color: rgba(255, 255, 255, 0.72);
       line-height: 1.6;
     }
@@ -226,13 +215,18 @@ export class AppShellComponent {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
 
-  protected readonly menu = [
+  private readonly baseMenu = [
     { path: '/dashboard', label: 'Dashboard', icon: 'space_dashboard' },
     { path: '/lancamentos', label: 'Lançar gasto', icon: 'add_circle' },
     { path: '/relatorios', label: 'Relatórios', icon: 'bar_chart' },
     { path: '/alertas', label: 'Alertas', icon: 'notifications' },
     { path: '/admin', label: 'Super Admin', icon: 'shield' }
   ];
+
+  protected readonly menu = computed(() => {
+    const isSuperAdmin = this.authService.currentUser()?.role === 'SUPER_ADMIN';
+    return this.baseMenu.filter((item) => isSuperAdmin || item.path !== '/admin');
+  });
 
   protected readonly userName = computed(() => this.authService.currentUser()?.fullName ?? 'Usuário');
   protected readonly userRole = computed(() => this.authService.currentUser()?.role === 'SUPER_ADMIN' ? 'Super admin' : 'Usuário');

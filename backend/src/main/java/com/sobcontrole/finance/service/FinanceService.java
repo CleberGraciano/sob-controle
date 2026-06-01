@@ -71,6 +71,21 @@ public class FinanceService {
         return new CategoryResponse(category.getId(), category.getName(), category.getMonthlyLimit(), category.getColorHex(), category.getIconKey());
     }
 
+    @Transactional
+    public CategoryResponse updateCategory(Long categoryId, CategoryRequest request) {
+        User user = currentUserService.requireCurrentUser();
+        Category category = categoryRepository.findById(categoryId)
+                .filter(candidate -> candidate.getUser().getId().equals(user.getId()))
+                .orElseThrow(() -> new IllegalArgumentException("Category not found"));
+
+        category.setName(request.name());
+        category.setMonthlyLimit(request.monthlyLimit());
+        category.setColorHex(request.colorHex());
+        category.setIconKey(request.iconKey());
+
+        return new CategoryResponse(category.getId(), category.getName(), category.getMonthlyLimit(), category.getColorHex(), category.getIconKey());
+    }
+
     @Transactional(readOnly = true)
     public List<CardResponse> listCards() {
         User user = currentUserService.requireCurrentUser();
@@ -92,6 +107,21 @@ public class FinanceService {
         return new CardResponse(card.getId(), card.getName(), card.getBrand(), card.getLastDigits(), card.isCredit());
     }
 
+    @Transactional
+    public CardResponse updateCard(Long cardId, CardRequest request) {
+        User user = currentUserService.requireCurrentUser();
+        Card card = cardRepository.findById(cardId)
+                .filter(candidate -> candidate.getUser().getId().equals(user.getId()))
+                .orElseThrow(() -> new IllegalArgumentException("Card not found"));
+
+        card.setName(request.name());
+        card.setBrand(request.brand());
+        card.setLastDigits(request.lastDigits());
+        card.setCredit(request.credit());
+
+        return new CardResponse(card.getId(), card.getName(), card.getBrand(), card.getLastDigits(), card.isCredit());
+    }
+
     @Transactional(readOnly = true)
     public List<ExpenseResponse> listRecentExpenses() {
         User user = currentUserService.requireCurrentUser();
@@ -103,16 +133,8 @@ public class FinanceService {
     @Transactional
     public ExpenseResponse createExpense(ExpenseRequest request) {
         User user = currentUserService.requireCurrentUser();
-        Category category = categoryRepository.findById(request.categoryId())
-                .filter(candidate -> candidate.getUser().getId().equals(user.getId()))
-                .orElseThrow(() -> new IllegalArgumentException("Category not found"));
-
-        Card card = null;
-        if (request.paymentMethod() == PaymentMethod.CREDIT_CARD && request.cardId() != null) {
-            card = cardRepository.findById(request.cardId())
-                    .filter(candidate -> candidate.getUser().getId().equals(user.getId()))
-                    .orElseThrow(() -> new IllegalArgumentException("Card not found"));
-        }
+        Category category = resolveCategory(user, request.categoryId());
+        Card card = resolveCard(user, request.paymentMethod(), request.cardId());
 
         Expense expense = expenseRepository.save(Expense.builder()
                 .itemName(request.itemName())
@@ -127,6 +149,30 @@ public class FinanceService {
                 .category(category)
                 .card(card)
                 .build());
+
+        user.setPreferredPaymentMethod(resolveMostUsedPaymentMethod(user));
+        return mapExpense(expense);
+    }
+
+    @Transactional
+    public ExpenseResponse updateExpense(Long expenseId, ExpenseRequest request) {
+        User user = currentUserService.requireCurrentUser();
+        Expense expense = expenseRepository.findById(expenseId)
+                .filter(candidate -> candidate.getUser().getId().equals(user.getId()))
+                .orElseThrow(() -> new IllegalArgumentException("Expense not found"));
+
+        Category category = resolveCategory(user, request.categoryId());
+        Card card = resolveCard(user, request.paymentMethod(), request.cardId());
+
+        expense.setItemName(request.itemName());
+        expense.setAmount(request.amount());
+        expense.setPurchaseDate(request.purchaseDate());
+        expense.setPaymentMethod(request.paymentMethod());
+        expense.setInstallmentPurchase(request.installmentPurchase());
+        expense.setInstallmentCount(request.installmentPurchase() ? request.installmentCount() : null);
+        expense.setInstallmentValue(request.installmentPurchase() ? request.installmentValue() : null);
+        expense.setCategory(category);
+        expense.setCard(card);
 
         user.setPreferredPaymentMethod(resolveMostUsedPaymentMethod(user));
         return mapExpense(expense);
@@ -287,12 +333,30 @@ public class FinanceService {
                 expense.getAmount(),
                 expense.getPurchaseDate(),
                 expense.getPaymentMethod(),
+                expense.getCategory().getId(),
                 expense.getCategory().getName(),
+                expense.getCard() == null ? null : expense.getCard().getId(),
                 cardLabel,
                 expense.isInstallmentPurchase(),
                 expense.getInstallmentCount(),
                 expense.getInstallmentValue()
         );
+    }
+
+    private Category resolveCategory(User user, Long categoryId) {
+        return categoryRepository.findById(categoryId)
+                .filter(candidate -> candidate.getUser().getId().equals(user.getId()))
+                .orElseThrow(() -> new IllegalArgumentException("Category not found"));
+    }
+
+    private Card resolveCard(User user, PaymentMethod paymentMethod, Long cardId) {
+        if ((paymentMethod != PaymentMethod.CREDIT_CARD && paymentMethod != PaymentMethod.DEBIT_CARD) || cardId == null) {
+            return null;
+        }
+
+        return cardRepository.findById(cardId)
+                .filter(candidate -> candidate.getUser().getId().equals(user.getId()))
+                .orElseThrow(() -> new IllegalArgumentException("Card not found"));
     }
 
     private int percentage(BigDecimal spent, BigDecimal limit) {

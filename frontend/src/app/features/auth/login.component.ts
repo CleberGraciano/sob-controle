@@ -12,6 +12,7 @@ import { AuthService } from '../../core/services/auth.service';
   template: `
     <div class="auth-page page-shell">
       <section class="hero-panel">
+        <img class="hero-logo" src="assets/logo.svg" alt="Sob Controle">
         <span class="chip">Controle diário, rápido e visual</span>
         <h1>Sua rotina financeira em uma interface feita para registrar gastos na hora em que acontecem.</h1>
         <p>Dashboard vivo, limites por categoria, alertas preventivos, relatórios mensais e sugestões de economia com IA.</p>
@@ -94,6 +95,17 @@ import { AuthService } from '../../core/services/auth.service';
       background: linear-gradient(145deg, rgba(15, 23, 42, 0.97), rgba(24, 36, 70, 0.9));
       color: white;
       box-shadow: var(--shadow);
+    }
+
+    .hero-logo {
+      display: block;
+      width: min(360px, 100%);
+      height: auto;
+      margin-bottom: 22px;
+      padding: 18px 22px;
+      border-radius: 28px;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 20px 60px rgba(9, 18, 37, 0.24);
     }
 
     .hero-panel h1 {

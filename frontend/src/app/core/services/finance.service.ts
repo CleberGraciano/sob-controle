@@ -22,12 +22,20 @@ export class FinanceService {
     return this.http.post<Category>(`${environment.apiUrl}/categories`, payload);
   }
 
+  updateCategory(categoryId: number, payload: Omit<Category, 'id'>): Observable<Category> {
+    return this.http.put<Category>(`${environment.apiUrl}/categories/${categoryId}`, payload);
+  }
+
   getCards(): Observable<Card[]> {
     return this.http.get<Card[]>(`${environment.apiUrl}/cards`);
   }
 
   createCard(payload: Omit<Card, 'id'>): Observable<Card> {
     return this.http.post<Card>(`${environment.apiUrl}/cards`, payload);
+  }
+
+  updateCard(cardId: number, payload: Omit<Card, 'id'>): Observable<Card> {
+    return this.http.put<Card>(`${environment.apiUrl}/cards/${cardId}`, payload);
   }
 
   getRecentExpenses(): Observable<Expense[]> {
@@ -40,6 +48,10 @@ export class FinanceService {
 
   createExpense(payload: Record<string, unknown>): Observable<Expense> {
     return this.http.post<Expense>(`${environment.apiUrl}/expenses`, payload);
+  }
+
+  updateExpense(expenseId: number, payload: Record<string, unknown>): Observable<Expense> {
+    return this.http.put<Expense>(`${environment.apiUrl}/expenses/${expenseId}`, payload);
   }
 
   getMonthlyReport(year?: number, month?: number): Observable<MonthlyReport> {
