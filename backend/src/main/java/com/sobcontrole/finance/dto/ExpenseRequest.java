@@ -15,6 +15,8 @@ public record ExpenseRequest(
         Long cardId,
         boolean installmentPurchase,
         Integer installmentCount,
-        BigDecimal installmentValue
+        BigDecimal installmentValue,
+        String receiptName,
+        String receiptDataUrl
 ) {
 }

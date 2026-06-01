@@ -144,6 +144,8 @@ public class FinanceService {
                 .installmentPurchase(request.installmentPurchase())
                 .installmentCount(request.installmentPurchase() ? request.installmentCount() : null)
                 .installmentValue(request.installmentPurchase() ? request.installmentValue() : null)
+            .receiptName(sanitizeReceiptName(request.receiptName()))
+            .receiptDataUrl(sanitizeReceiptDataUrl(request.receiptDataUrl()))
                 .createdAt(java.time.LocalDateTime.now())
                 .user(user)
                 .category(category)
@@ -171,6 +173,8 @@ public class FinanceService {
         expense.setInstallmentPurchase(request.installmentPurchase());
         expense.setInstallmentCount(request.installmentPurchase() ? request.installmentCount() : null);
         expense.setInstallmentValue(request.installmentPurchase() ? request.installmentValue() : null);
+        expense.setReceiptName(sanitizeReceiptName(request.receiptName()));
+        expense.setReceiptDataUrl(sanitizeReceiptDataUrl(request.receiptDataUrl()));
         expense.setCategory(category);
         expense.setCard(card);
 
@@ -239,6 +243,7 @@ public class FinanceService {
                 highestExpense,
                 monthExpenses.size(),
                 categorySummaries,
+            monthExpenses.stream().map(this::mapExpense).toList(),
                 suggestions,
                 insight
         );
@@ -339,8 +344,31 @@ public class FinanceService {
                 cardLabel,
                 expense.isInstallmentPurchase(),
                 expense.getInstallmentCount(),
-                expense.getInstallmentValue()
+                expense.getInstallmentValue(),
+                expense.getReceiptName(),
+                expense.getReceiptDataUrl()
         );
+    }
+
+    private String sanitizeReceiptName(String receiptName) {
+        return receiptName == null || receiptName.isBlank() ? null : receiptName.trim();
+    }
+
+    private String sanitizeReceiptDataUrl(String receiptDataUrl) {
+        if (receiptDataUrl == null || receiptDataUrl.isBlank()) {
+            return null;
+        }
+
+        String trimmed = receiptDataUrl.trim();
+        if (!trimmed.startsWith("data:")) {
+            throw new IllegalArgumentException("Comprovante invalido");
+        }
+
+        if (trimmed.length() > 5_000_000) {
+            throw new IllegalArgumentException("Comprovante excede o tamanho permitido");
+        }
+
+        return trimmed;
     }
 
     private Category resolveCategory(User user, Long categoryId) {

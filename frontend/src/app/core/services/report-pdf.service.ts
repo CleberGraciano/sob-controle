@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { MonthlyReport } from '../models/finance.models';
+import { Expense, MonthlyReport } from '../models/finance.models';
 
 @Injectable({ providedIn: 'root' })
 export class ReportPdfService {
@@ -86,6 +86,10 @@ export class ReportPdfService {
 
     let suggestionY = finalY + 54;
     report.suggestions.forEach((suggestion) => {
+      if (suggestionY > 730) {
+        pdf.addPage();
+        suggestionY = 64;
+      }
       pdf.setFillColor(246, 248, 251);
       pdf.roundedRect(32, suggestionY - 16, 531, 52, 12, 12, 'F');
       pdf.setFont('helvetica', 'bold');
@@ -99,10 +103,62 @@ export class ReportPdfService {
       suggestionY += 68;
     });
 
+    if (suggestionY > 680) {
+      pdf.addPage();
+      suggestionY = 64;
+    }
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(16);
+    pdf.setTextColor(accent[0], accent[1], accent[2]);
+    pdf.text('Lancamentos e comprovantes', 32, suggestionY + 8);
+
+    autoTable(pdf, {
+      startY: suggestionY + 24,
+      head: [['Item', 'Categoria', 'Valor', 'Comprovante']],
+      body: report.expenses.map((expense) => [
+        expense.itemName,
+        expense.category,
+        this.money(expense.amount),
+        expense.receiptName ?? 'Nao anexado'
+      ]),
+      headStyles: {
+        fillColor: [accent[0], accent[1], accent[2]],
+        textColor: [255, 255, 255]
+      },
+      styles: {
+        fontSize: 9,
+        cellPadding: 8,
+        textColor: [20, 33, 61]
+      },
+      alternateRowStyles: {
+        fillColor: [246, 248, 251]
+      }
+    });
+
+    let receiptY = ((pdf as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? suggestionY + 24) + 24;
+    report.expenses.filter((expense) => this.isImageReceipt(expense.receiptDataUrl)).forEach((expense) => {
+      if (receiptY > 640) {
+        pdf.addPage();
+        receiptY = 48;
+      }
+
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(12);
+      pdf.setTextColor(accent[0], accent[1], accent[2]);
+      pdf.text(expense.receiptName ?? expense.itemName, 32, receiptY);
+      pdf.addImage(expense.receiptDataUrl as string, undefined, 32, receiptY + 12, 180, 120, undefined, 'FAST');
+      receiptY += 152;
+    });
+
     pdf.save(`sob-controle-relatorio-${report.reference}.pdf`);
   }
 
   private money(value: number): string {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  }
+
+  private isImageReceipt(receiptDataUrl?: string | null): boolean {
+    return !!receiptDataUrl && receiptDataUrl.startsWith('data:image/');
   }
 }

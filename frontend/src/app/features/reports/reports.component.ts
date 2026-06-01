@@ -1,4 +1,4 @@
-import { CommonModule, CurrencyPipe } from '@angular/common';
+import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, OnInit, signal } from '@angular/core';
 import { BaseChartDirective } from 'ng2-charts';
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
@@ -11,7 +11,7 @@ Chart.register(...registerables);
 @Component({
   selector: 'app-reports',
   standalone: true,
-  imports: [CommonModule, CurrencyPipe, BaseChartDirective],
+  imports: [CommonModule, CurrencyPipe, DatePipe, BaseChartDirective],
   template: `
     <div *ngIf="error()" class="feedback error">{{ error() }}</div>
 
@@ -73,6 +73,35 @@ Chart.register(...registerables);
           </div>
           <span>{{ suggestion.potentialMonthlySavings | currency:'BRL' }}/mês</span>
         </article>
+      </section>
+
+      <section class="panel glass-card expenses-panel">
+        <div class="panel-head">
+          <div>
+            <h3>Lançamentos do período</h3>
+            <p class="section-subtitle">Comprovantes opcionais anexados aos gastos do mês.</p>
+          </div>
+        </div>
+
+        <div class="expense-report-list" *ngIf="data.expenses.length; else noExpenses">
+          <article *ngFor="let expense of data.expenses">
+            <div>
+              <strong>{{ expense.itemName }}</strong>
+              <p>{{ expense.category }} • {{ expense.purchaseDate | date:'dd/MM/yyyy' }}</p>
+              <small>{{ expense.amount | currency:'BRL' }}</small>
+            </div>
+            <div class="expense-report-receipt">
+              <a *ngIf="expense.receiptDataUrl" [href]="expense.receiptDataUrl" [attr.download]="expense.receiptName || 'comprovante'" target="_blank" rel="noopener noreferrer">
+                {{ expense.receiptName || 'Abrir comprovante' }}
+              </a>
+              <span *ngIf="!expense.receiptDataUrl">Sem comprovante</span>
+            </div>
+          </article>
+        </div>
+
+        <ng-template #noExpenses>
+          <p class="section-subtitle">Nenhum lançamento encontrado no período.</p>
+        </ng-template>
       </section>
     </div>
   `,
@@ -205,12 +234,55 @@ Chart.register(...registerables);
       color: var(--primary-dark);
     }
 
+    .expenses-panel {
+      display: grid;
+      gap: 16px;
+    }
+
+    .expense-report-list {
+      display: grid;
+      gap: 14px;
+    }
+
+    .expense-report-list article {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      padding: 16px 18px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .expense-report-list p,
+    .expense-report-list small,
+    .expense-report-receipt span {
+      margin: 6px 0 0;
+      color: var(--muted);
+    }
+
+    .expense-report-receipt {
+      display: grid;
+      align-content: center;
+      justify-items: end;
+    }
+
+    .expense-report-receipt a {
+      color: var(--primary-dark);
+      font-weight: 800;
+      text-decoration: none;
+    }
+
     @media (max-width: 980px) {
       .report-hero,
       .metrics,
-      .suggestions article {
+      .suggestions article,
+      .expense-report-list article {
         grid-template-columns: 1fr;
         display: grid;
+      }
+
+      .expense-report-receipt {
+        justify-items: start;
       }
     }
   `]

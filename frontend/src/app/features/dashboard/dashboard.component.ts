@@ -18,8 +18,13 @@ Chart.register(...registerables);
     <div class="dashboard-grid" *ngIf="dashboard() as data">
       <section class="hero glass-card">
         <div>
-          <span class="chip hero-chip">Resumo do mês</span>
-          <h2>Ritmo financeiro claro, com foco no que exige ação imediata.</h2>
+          <div class="hero-headline">
+            <div>
+              <span class="chip hero-chip">Resumo do mês</span>
+              <h2>Ritmo financeiro claro, com foco no que exige ação imediata.</h2>
+            </div>
+            <span class="month-badge">{{ currentMonthLabel() }}</span>
+          </div>
           <div class="hero-stats">
             <article>
               <span>Gasto até agora</span>
@@ -182,9 +187,24 @@ Chart.register(...registerables);
       color: white;
     }
 
+    .hero-headline {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
     .hero-chip {
       background: rgba(255, 255, 255, 0.14);
       color: white;
+    }
+
+    .month-badge {
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      font-weight: 700;
+      white-space: nowrap;
     }
 
     .hero h2 {
@@ -373,11 +393,144 @@ Chart.register(...registerables);
     }
 
     @media (max-width: 720px) {
+      .dashboard-grid {
+        gap: 16px;
+      }
+
+      .hero,
+      .panel {
+        padding: 18px;
+        border-radius: 22px;
+      }
+
+      .hero {
+        gap: 18px;
+        margin-top: -52px;
+        position: relative;
+        z-index: 2;
+        box-shadow: 0 26px 50px rgba(14, 25, 46, 0.22);
+      }
+
+      .hero-headline {
+        align-items: center;
+      }
+
+      .hero h2,
+      .section-subtitle,
+      .preferred {
+        display: none;
+      }
+
+      .hero-stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 20px;
+        overflow: hidden;
+      }
+
+      .hero-stats article {
+        background: transparent;
+        border-radius: 0;
+        padding: 16px;
+      }
+
+      .hero-stats article:first-child {
+        grid-column: span 2;
+        padding-bottom: 8px;
+      }
+
+      .hero-stats article:nth-child(2),
+      .hero-stats article:nth-child(3) {
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .hero-stats article:nth-child(2) {
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .hero-stats article:first-child strong {
+        font-size: 2rem;
+        color: #34d399;
+      }
+
+      .hero-side {
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        justify-items: start;
+      }
+
+      .progress-circle,
+      .progress-circle svg {
+        width: 108px;
+        height: 108px;
+      }
+
+      .progress-circle strong {
+        font-size: 1.3rem;
+      }
+
+      .month-badge {
+        font-size: 0.8rem;
+      }
+
+      .panel-head {
+        margin-bottom: 14px;
+      }
+
+      .panel-head a {
+        font-size: 0.82rem;
+      }
+
       .hero-stats,
       .category-top,
       .expense-list article,
       .suggestions-panel article {
         grid-template-columns: 1fr;
+      }
+
+      .category-list article,
+      .expense-list article,
+      .suggestions-panel article {
+        padding: 0;
+        background: transparent;
+        border: none;
+        border-radius: 0;
+      }
+
+      .category-top {
+        grid-template-columns: 1fr auto;
+        align-items: center;
+      }
+
+      .category-meta {
+        gap: 12px;
+      }
+
+      .category-meta strong {
+        font-size: 0.98rem;
+      }
+
+      .icon-box {
+        width: 38px;
+        height: 38px;
+        border-radius: 999px;
+      }
+
+      .bar-track {
+        height: 6px;
+        margin-top: 10px;
+      }
+
+      .expense-right,
+      .suggestions-panel span {
+        text-align: left;
+      }
+
+      .chart-panel,
+      .suggestions-panel,
+      .expense-list {
+        display: none;
       }
     }
   `]
@@ -385,6 +538,7 @@ Chart.register(...registerables);
 export class DashboardComponent implements OnInit {
   protected readonly dashboard = signal<DashboardData | null>(null);
   protected readonly error = signal('');
+  protected readonly currentMonthLabel = signal(new Intl.DateTimeFormat('pt-BR', { month: 'short', year: 'numeric' }).format(new Date()));
 
   protected lineChartData: ChartConfiguration<'line'>['data'] = {
     labels: [],

@@ -10,6 +10,7 @@ public record MonthlyReportResponse(
         BigDecimal highestExpense,
         int totalTransactions,
         List<CategorySummaryResponse> categories,
+        List<ExpenseResponse> expenses,
         List<SuggestionResponse> suggestions,
         String insight
 ) {

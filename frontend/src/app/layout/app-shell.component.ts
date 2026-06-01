@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../core/services/auth.service';
 
@@ -9,7 +9,9 @@ import { AuthService } from '../core/services/auth.service';
   imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive],
   template: `
     <div class="shell-layout page-shell">
-      <aside class="sidebar glass-card">
+      <div class="mobile-overlay" *ngIf="mobileMenuOpen()" (click)="closeMobileMenu()"></div>
+
+      <aside class="sidebar glass-card" [class.open]="mobileMenuOpen()">
         <div class="sidebar-top">
           <div>
             <img class="brand-logo" src="assets/logo.svg" alt="Sob Controle">
@@ -17,7 +19,7 @@ import { AuthService } from '../core/services/auth.service';
           </div>
 
           <nav>
-            <a *ngFor="let item of menu()" [routerLink]="item.path" routerLinkActive="active">
+            <a *ngFor="let item of menu()" [routerLink]="item.path" routerLinkActive="active" (click)="closeMobileMenu()">
               <span class="material-icons-outlined">{{ item.icon }}</span>
               <span>{{ item.label }}</span>
             </a>
@@ -34,6 +36,22 @@ import { AuthService } from '../core/services/auth.service';
       </aside>
 
       <main class="content-area">
+        <header class="mobile-header">
+          <div class="mobile-header-top">
+            <button type="button" class="icon-button mobile-trigger" (click)="toggleMobileMenu()" aria-label="Abrir menu">
+              <span class="material-icons-outlined">menu</span>
+            </button>
+            <button type="button" class="icon-button" routerLink="/alertas" aria-label="Ver alertas">
+              <span class="material-icons-outlined">notifications</span>
+            </button>
+          </div>
+
+          <div class="mobile-greeting">
+            <strong>{{ greeting() }} <span class="wave">👋</span></strong>
+            <small>{{ todayLabel() }}</small>
+          </div>
+        </header>
+
         <header class="topbar glass-card">
           <div>
             <span class="chip">Resumo vivo do seu mês</span>
@@ -50,6 +68,13 @@ import { AuthService } from '../core/services/auth.service';
           <router-outlet />
         </section>
       </main>
+
+      <nav class="mobile-nav glass-card">
+        <a *ngFor="let item of mobileNav()" [routerLink]="item.path" routerLinkActive="active" [class.primary-action]="item.primary">
+          <span class="material-icons-outlined">{{ item.icon }}</span>
+          <span>{{ item.label }}</span>
+        </a>
+      </nav>
     </div>
   `,
   styles: [`
@@ -58,6 +83,7 @@ import { AuthService } from '../core/services/auth.service';
       grid-template-columns: 300px 1fr;
       gap: 24px;
       padding: 24px;
+      position: relative;
     }
 
     .sidebar {
@@ -71,6 +97,7 @@ import { AuthService } from '../core/services/auth.service';
       border-radius: 32px;
       background: linear-gradient(180deg, #0f172a 0%, #15213a 100%);
       color: white;
+      z-index: 30;
     }
 
     .sidebar-top {
@@ -149,6 +176,12 @@ import { AuthService } from '../core/services/auth.service';
       align-content: start;
     }
 
+    .mobile-header,
+    .mobile-nav,
+    .mobile-overlay {
+      display: none;
+    }
+
     .topbar {
       display: flex;
       justify-content: space-between;
@@ -178,6 +211,17 @@ import { AuthService } from '../core/services/auth.service';
       padding-bottom: 24px;
     }
 
+    .icon-button {
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+    }
+
     @media (max-width: 1100px) {
       .shell-layout {
         grid-template-columns: 1fr;
@@ -190,23 +234,129 @@ import { AuthService } from '../core/services/auth.service';
     }
 
     @media (max-width: 720px) {
-      .shell-layout,
-      .topbar {
-        padding: 18px;
+      .shell-layout {
+        padding: 0;
+        gap: 0;
+        background: linear-gradient(180deg, #121d31 0, #121d31 260px, transparent 260px);
+      }
+
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: min(84vw, 320px);
+        min-height: 100vh;
+        height: 100vh;
+        border-radius: 0 28px 28px 0;
+        transform: translateX(-100%);
+        transition: transform 0.24s ease;
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+
+      .mobile-overlay {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(9, 18, 33, 0.46);
+        z-index: 20;
+      }
+
+      .mobile-header {
+        display: grid;
+        gap: 14px;
+        padding: 18px 18px 10px;
+        color: white;
+      }
+
+      .mobile-header-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .mobile-trigger {
+        background: transparent;
+      }
+
+      .mobile-greeting {
+        display: grid;
+        gap: 4px;
+      }
+
+      .mobile-greeting strong {
+        font-size: 1.6rem;
+        font-family: 'Space Grotesk', sans-serif;
+      }
+
+      .mobile-greeting small {
+        color: rgba(255, 255, 255, 0.72);
+      }
+
+      .wave {
+        font-size: 1.2rem;
+      }
+
+      .content-area {
+        gap: 14px;
       }
 
       .topbar {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 18px;
+        display: none;
       }
 
-      .topbar-actions {
-        width: 100%;
+      .router-panel {
+        padding: 0 14px 104px;
       }
 
-      .topbar-actions button {
-        flex: 1;
+      .mobile-nav {
+        position: fixed;
+        left: 14px;
+        right: 14px;
+        bottom: 14px;
+        z-index: 25;
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 4px;
+        padding: 10px 8px calc(10px + env(safe-area-inset-bottom, 0px));
+        border-radius: 28px;
+        background: rgba(255, 255, 255, 0.94);
+      }
+
+      .mobile-nav a {
+        display: grid;
+        justify-items: center;
+        gap: 6px;
+        padding: 8px 4px;
+        color: var(--muted);
+        text-decoration: none;
+        font-size: 0.72rem;
+        font-weight: 800;
+      }
+
+      .mobile-nav a.active {
+        color: var(--primary-dark);
+      }
+
+      .mobile-nav .material-icons-outlined {
+        font-size: 1.35rem;
+      }
+
+      .mobile-nav a.primary-action .material-icons-outlined {
+        width: 52px;
+        height: 52px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        background: linear-gradient(135deg, var(--primary), #27c48b);
+        color: white;
+        box-shadow: 0 14px 26px rgba(24, 143, 105, 0.34);
+      }
+
+      .mobile-nav a.primary-action span:last-child {
+        margin-top: -2px;
       }
     }
   `]
@@ -214,6 +364,7 @@ import { AuthService } from '../core/services/auth.service';
 export class AppShellComponent {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  protected readonly mobileMenuOpen = signal(false);
 
   private readonly baseMenu = [
     { path: '/dashboard', label: 'Dashboard', icon: 'space_dashboard' },
@@ -227,12 +378,42 @@ export class AppShellComponent {
     const isSuperAdmin = this.authService.currentUser()?.role === 'SUPER_ADMIN';
     return this.baseMenu.filter((item) => isSuperAdmin || item.path !== '/admin');
   });
+  protected readonly mobileNav = computed(() => {
+    const base = this.menu().filter((item) => item.path !== '/admin');
+    const mapped = base.map((item) => ({
+      ...item,
+      label: item.path === '/dashboard' ? 'Início' : item.path === '/lancamentos' ? 'Lançar' : item.label,
+      primary: item.path === '/relatorios'
+    }));
+
+    return [
+      mapped.find((item) => item.path === '/dashboard') ?? { path: '/dashboard', label: 'Início', icon: 'home', primary: false },
+      mapped.find((item) => item.path === '/lancamentos') ?? { path: '/lancamentos', label: 'Lançar', icon: 'add_circle', primary: false },
+      mapped.find((item) => item.path === '/relatorios') ?? { path: '/relatorios', label: 'Relatórios', icon: 'bar_chart', primary: true },
+      mapped.find((item) => item.path === '/alertas') ?? { path: '/alertas', label: 'Alertas', icon: 'notifications', primary: false },
+      { path: '/dashboard', label: 'Mais', icon: 'more_horiz', primary: false }
+    ];
+  });
 
   protected readonly userName = computed(() => this.authService.currentUser()?.fullName ?? 'Usuário');
   protected readonly userRole = computed(() => this.authService.currentUser()?.role === 'SUPER_ADMIN' ? 'Super admin' : 'Usuário');
   protected readonly greeting = computed(() => `Olá, ${this.userName()}`);
+  protected readonly todayLabel = computed(() => new Intl.DateTimeFormat('pt-BR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long'
+  }).format(new Date()).replace(/^./, (value) => value.toUpperCase()));
+
+  protected toggleMobileMenu(): void {
+    this.mobileMenuOpen.update((state) => !state);
+  }
+
+  protected closeMobileMenu(): void {
+    this.mobileMenuOpen.set(false);
+  }
 
   protected logout(): void {
+    this.closeMobileMenu();
     this.authService.logout();
     this.router.navigate(['/login']);
   }

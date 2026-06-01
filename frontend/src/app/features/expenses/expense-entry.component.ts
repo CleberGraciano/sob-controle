@@ -84,6 +84,26 @@ import { FinanceService } from '../../core/services/finance.service';
             </label>
           </div>
 
+          <div class="receipt-box">
+            <div>
+              <strong>Comprovante</strong>
+              <p class="field-hint">Opcional. Aceita imagem ou PDF e aparece no relatório.</p>
+            </div>
+            <label class="receipt-upload">
+              <input type="file" accept="image/*,application/pdf" (change)="onReceiptSelected($event)">
+              <span class="material-icons-outlined">add_a_photo</span>
+              <span>{{ expenseForm.controls.receiptName.value || 'Anexar comprovante' }}</span>
+            </label>
+            <div class="receipt-preview" *ngIf="expenseForm.controls.receiptName.value">
+              <div>
+                <strong>{{ expenseForm.controls.receiptName.value }}</strong>
+                <small *ngIf="isImageReceipt()">Imagem pronta para o relatório</small>
+                <small *ngIf="!isImageReceipt()">Arquivo PDF anexado</small>
+              </div>
+              <button type="button" class="text-button" (click)="clearReceipt()">Remover</button>
+            </div>
+          </div>
+
           <div class="button-row">
             <button type="submit" [disabled]="saving()">{{ saving() ? 'Salvando...' : editingExpenseId() ? 'Salvar alteração' : 'Salvar lançamento' }}</button>
             <button type="button" class="secondary-button" *ngIf="editingExpenseId()" (click)="cancelExpenseEdit()">Cancelar edição</button>
@@ -176,6 +196,7 @@ import { FinanceService } from '../../core/services/finance.service';
                 <strong>{{ expense.itemName }}</strong>
                 <small>{{ expense.category }} • {{ expense.purchaseDate | date:'dd/MM/yyyy' }}</small>
                 <small *ngIf="expense.cardLabel">{{ expense.cardLabel }}</small>
+                <small *ngIf="expense.receiptName">Comprovante: {{ expense.receiptName }}</small>
               </div>
               <div class="mini-item-actions">
                 <strong>{{ expense.amount | currency:'BRL' }}</strong>
@@ -274,6 +295,41 @@ import { FinanceService } from '../../core/services/finance.service';
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 14px;
+    }
+
+    .receipt-box {
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(20, 33, 61, 0.04);
+    }
+
+    .receipt-upload {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 1px dashed var(--line);
+      background: rgba(255, 255, 255, 0.8);
+      cursor: pointer;
+      color: var(--ink);
+    }
+
+    .receipt-upload input {
+      display: none;
+    }
+
+    .receipt-preview {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid rgba(20, 33, 61, 0.08);
     }
 
     .toggle-row {
@@ -441,7 +497,9 @@ export class ExpenseEntryComponent implements OnInit {
     cardId: '',
     installmentPurchase: false,
     installmentCount: 2,
-    installmentValue: 0
+    installmentValue: 0,
+    receiptName: '',
+    receiptDataUrl: ''
   });
 
   protected readonly categoryForm = this.formBuilder.nonNullable.group({
@@ -486,7 +544,9 @@ export class ExpenseEntryComponent implements OnInit {
       amount: Number(this.expenseForm.controls.amount.value),
       cardId: this.isCardPayment() && this.expenseForm.controls.cardId.value ? Number(this.expenseForm.controls.cardId.value) : null,
       installmentCount: this.isInstallment() ? Number(this.expenseForm.controls.installmentCount.value) : null,
-      installmentValue: this.isInstallment() ? Number(this.expenseForm.controls.installmentValue.value) : null
+      installmentValue: this.isInstallment() ? Number(this.expenseForm.controls.installmentValue.value) : null,
+      receiptName: this.expenseForm.controls.receiptName.value || null,
+      receiptDataUrl: this.expenseForm.controls.receiptDataUrl.value || null
     };
 
     const request$ = this.editingExpenseId()
@@ -602,7 +662,9 @@ export class ExpenseEntryComponent implements OnInit {
       cardId: expense.cardId ? String(expense.cardId) : '',
       installmentPurchase: expense.installmentPurchase,
       installmentCount: expense.installmentCount ?? 2,
-      installmentValue: Number(expense.installmentValue ?? 0)
+      installmentValue: Number(expense.installmentValue ?? 0),
+      receiptName: expense.receiptName ?? '',
+      receiptDataUrl: expense.receiptDataUrl ?? ''
     });
   }
 
@@ -631,6 +693,40 @@ export class ExpenseEntryComponent implements OnInit {
     return !!this.expenseForm.controls.installmentPurchase.value;
   }
 
+  protected onReceiptSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    if (file.size > 3 * 1024 * 1024) {
+      this.error.set('O comprovante deve ter no máximo 3 MB.');
+      input.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.expenseForm.patchValue({
+        receiptName: file.name,
+        receiptDataUrl: typeof reader.result === 'string' ? reader.result : ''
+      });
+      this.error.set('');
+    };
+    reader.onerror = () => this.error.set('Nao foi possivel ler o comprovante.');
+    reader.readAsDataURL(file);
+    input.value = '';
+  }
+
+  protected clearReceipt(): void {
+    this.expenseForm.patchValue({ receiptName: '', receiptDataUrl: '' });
+  }
+
+  protected isImageReceipt(): boolean {
+    return (this.expenseForm.controls.receiptDataUrl.value || '').startsWith('data:image/');
+  }
+
   private resetExpenseForm(): void {
     this.expenseForm.patchValue({
       itemName: '',
@@ -641,7 +737,9 @@ export class ExpenseEntryComponent implements OnInit {
       cardId: '',
       installmentPurchase: false,
       installmentCount: 2,
-      installmentValue: 0
+      installmentValue: 0,
+      receiptName: '',
+      receiptDataUrl: ''
     });
   }
 

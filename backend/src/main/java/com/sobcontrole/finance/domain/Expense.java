@@ -9,6 +9,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
@@ -53,6 +54,12 @@ public class Expense {
 
     @Column(precision = 12, scale = 2)
     private BigDecimal installmentValue;
+
+    private String receiptName;
+
+    @Lob
+    @Column(columnDefinition = "TEXT")
+    private String receiptDataUrl;
 
     private LocalDateTime createdAt;
 

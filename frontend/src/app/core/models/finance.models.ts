@@ -38,6 +38,8 @@ export interface Expense {
   installmentPurchase: boolean;
   installmentCount?: number | null;
   installmentValue?: number | null;
+  receiptName?: string | null;
+  receiptDataUrl?: string | null;
 }
 
 export interface CategorySummary {
@@ -83,6 +85,7 @@ export interface MonthlyReport {
   highestExpense: number;
   totalTransactions: number;
   categories: CategorySummary[];
+  expenses: Expense[];
   suggestions: SuggestionItem[];
   insight: string;
 }

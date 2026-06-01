@@ -16,6 +16,8 @@ public record ExpenseResponse(
         String cardLabel,
         boolean installmentPurchase,
         Integer installmentCount,
-        BigDecimal installmentValue
+        BigDecimal installmentValue,
+        String receiptName,
+        String receiptDataUrl
 ) {
 }
