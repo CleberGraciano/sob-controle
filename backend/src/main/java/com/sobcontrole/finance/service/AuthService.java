@@ -28,18 +28,21 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final EmailService emailService;
+    private final DefaultCategoryService defaultCategoryService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        AuthenticationManager authenticationManager,
                        JwtService jwtService,
-                       EmailService emailService) {
+                       EmailService emailService,
+                       DefaultCategoryService defaultCategoryService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.emailService = emailService;
+        this.defaultCategoryService = defaultCategoryService;
     }
 
     @Transactional
@@ -56,6 +59,8 @@ public class AuthService {
                 .active(true)
                 .preferredPaymentMethod(PaymentMethod.PIX)
                 .build());
+
+        defaultCategoryService.ensureDefaults(user);
 
         return authenticate(new AuthRequest(request.email(), request.password()));
     }
