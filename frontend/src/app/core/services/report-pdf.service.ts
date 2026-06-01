@@ -147,7 +147,7 @@ export class ReportPdfService {
       pdf.setFontSize(12);
       pdf.setTextColor(accent[0], accent[1], accent[2]);
       pdf.text(expense.receiptName ?? expense.itemName, 32, receiptY);
-      pdf.addImage(expense.receiptDataUrl as string, undefined, 32, receiptY + 12, 180, 120, undefined, 'FAST');
+      pdf.addImage(expense.receiptDataUrl as string, this.imageFormat(expense.receiptDataUrl as string), 32, receiptY + 12, 180, 120, undefined, 'FAST');
       receiptY += 152;
     });
 
@@ -160,5 +160,17 @@ export class ReportPdfService {
 
   private isImageReceipt(receiptDataUrl?: string | null): boolean {
     return !!receiptDataUrl && receiptDataUrl.startsWith('data:image/');
+  }
+
+  private imageFormat(receiptDataUrl: string): 'PNG' | 'JPEG' | 'WEBP' {
+    if (receiptDataUrl.startsWith('data:image/png')) {
+      return 'PNG';
+    }
+
+    if (receiptDataUrl.startsWith('data:image/webp')) {
+      return 'WEBP';
+    }
+
+    return 'JPEG';
   }
 }
