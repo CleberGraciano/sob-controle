@@ -14,7 +14,7 @@ import { FinanceService } from '../../core/services/finance.service';
         <div class="section-head">
           <div>
             <h3 class="section-title">{{ editingCategoryId() ? 'Editar categoria' : 'Categorias' }}</h3>
-            <p class="section-subtitle">Cadastre categorias com limite mensal, cor e ícone.</p>
+            <p class="section-subtitle">{{ editingSystemCategory() ? 'Categorias padrão permitem alterar somente o limite mensal.' : 'Cadastre categorias com limite mensal, cor e ícone.' }}</p>
           </div>
           <span class="chip">Organização do orçamento</span>
         </div>
@@ -59,7 +59,7 @@ import { FinanceService } from '../../core/services/finance.service';
         <div class="section-head compact-head">
           <div>
             <h3 class="section-title">Categorias cadastradas</h3>
-            <p class="section-subtitle">Edite rapidamente limites e identidade visual.</p>
+            <p class="section-subtitle">Categorias padrão aceitam ajuste apenas no limite mensal.</p>
           </div>
         </div>
 
@@ -78,7 +78,10 @@ import { FinanceService } from '../../core/services/finance.service';
               <button type="button" class="text-button danger-button" (click)="confirmDelete(category)">Excluir</button>
             </div>
             <ng-template #lockedCategory>
-              <span class="locked-badge">Bloqueada</span>
+              <div class="item-actions">
+                <button type="button" class="text-button" (click)="startEdit(category)">Editar limite</button>
+                <span class="locked-badge">Exclusão bloqueada</span>
+              </div>
             </ng-template>
           </article>
         </div>
@@ -265,6 +268,7 @@ import { FinanceService } from '../../core/services/finance.service';
 export class CategoriesComponent implements OnInit {
   protected readonly categories = signal<Category[]>([]);
   protected readonly editingCategoryId = signal<number | null>(null);
+  protected readonly editingSystemCategory = signal(false);
   protected readonly message = signal('');
   protected readonly error = signal('');
 
@@ -290,11 +294,12 @@ export class CategoriesComponent implements OnInit {
       return;
     }
 
+    const editingCategory = this.categories().find((category) => category.id === this.editingCategoryId()) ?? null;
     const payload = {
-      name: this.form.controls.name.value,
+      name: this.editingSystemCategory() && editingCategory ? editingCategory.name : this.form.controls.name.value,
       monthlyLimit: Number(this.form.controls.monthlyLimit.value),
-      colorHex: this.form.controls.colorHex.value,
-      iconKey: this.form.controls.iconKey.value
+      colorHex: this.editingSystemCategory() && editingCategory ? editingCategory.colorHex : this.form.controls.colorHex.value,
+      iconKey: this.editingSystemCategory() && editingCategory ? editingCategory.iconKey : this.form.controls.iconKey.value
     };
 
     const request$ = this.editingCategoryId()
@@ -315,22 +320,36 @@ export class CategoriesComponent implements OnInit {
   }
 
   protected startEdit(category: Category): void {
-    if (category.systemDefined) {
-      this.error.set('As categorias padrao do sistema nao podem ser editadas.');
-      return;
-    }
-
     this.editingCategoryId.set(category.id);
+    this.editingSystemCategory.set(category.systemDefined);
     this.form.patchValue({
       name: category.name,
       monthlyLimit: category.monthlyLimit,
       colorHex: category.colorHex,
       iconKey: category.iconKey
     });
+
+    if (category.systemDefined) {
+      this.form.controls.name.disable();
+      this.form.controls.colorHex.disable();
+      this.form.controls.iconKey.disable();
+      this.message.set('Para categorias padrão, apenas o limite mensal pode ser alterado.');
+    } else {
+      this.form.controls.name.enable();
+      this.form.controls.colorHex.enable();
+      this.form.controls.iconKey.enable();
+      this.message.set('');
+    }
+
+    this.error.set('');
   }
 
   protected cancelEdit(): void {
     this.editingCategoryId.set(null);
+    this.editingSystemCategory.set(false);
+    this.form.controls.name.enable();
+    this.form.controls.colorHex.enable();
+    this.form.controls.iconKey.enable();
     this.form.patchValue({
       name: '',
       monthlyLimit: 0,

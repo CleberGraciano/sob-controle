@@ -85,12 +85,15 @@ public class FinanceService {
                 .filter(candidate -> candidate.getUser().getId().equals(user.getId()))
                 .orElseThrow(() -> new IllegalArgumentException("Category not found"));
 
-        ensureCategoryEditable(category);
+        if (category.isSystemDefined()) {
+            ensureOnlyMonthlyLimitUpdated(category, request);
+        } else {
+            category.setName(request.name());
+            category.setColorHex(request.colorHex());
+            category.setIconKey(request.iconKey());
+        }
 
-        category.setName(request.name());
         category.setMonthlyLimit(request.monthlyLimit());
-        category.setColorHex(request.colorHex());
-        category.setIconKey(request.iconKey());
 
         return mapCategory(category);
     }
@@ -454,6 +457,14 @@ public class FinanceService {
     private void ensureCategoryEditable(Category category) {
         if (category.isSystemDefined()) {
             throw new IllegalArgumentException("As categorias padrao do sistema nao podem ser editadas ou excluidas.");
+        }
+    }
+
+    private void ensureOnlyMonthlyLimitUpdated(Category category, CategoryRequest request) {
+        if (!category.getName().equals(request.name())
+                || !category.getColorHex().equals(request.colorHex())
+                || !category.getIconKey().equals(request.iconKey())) {
+            throw new IllegalArgumentException("As categorias padrao do sistema permitem alterar apenas o limite mensal.");
         }
     }
 }
