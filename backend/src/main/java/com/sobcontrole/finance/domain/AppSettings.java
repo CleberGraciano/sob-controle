@@ -1,5 +1,6 @@
 package com.sobcontrole.finance.domain;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -22,7 +23,10 @@ public class AppSettings {
     private Long id;
 
     private String siteName;
+
+    @Column(columnDefinition = "TEXT")
     private String logoUrl;
+
     private String primaryColor;
     private String smtpHost;
     private Integer smtpPort;
