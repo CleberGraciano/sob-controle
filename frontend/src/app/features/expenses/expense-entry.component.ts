@@ -1,6 +1,7 @@
 import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { Card, Category, Expense, PaymentMethod } from '../../core/models/finance.models';
 import { AuthService } from '../../core/services/auth.service';
@@ -9,7 +10,7 @@ import { FinanceService } from '../../core/services/finance.service';
 @Component({
   selector: 'app-expense-entry',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, CurrencyPipe, DatePipe],
+  imports: [CommonModule, ReactiveFormsModule, CurrencyPipe, DatePipe, RouterLink],
   template: `
     <div class="entry-grid">
       <section class="form-card glass-card">
@@ -66,7 +67,7 @@ import { FinanceService } from '../../core/services/finance.service';
             </select>
           </label>
 
-          <p class="field-hint warning" *ngIf="isCardPayment() && !cards().length">Cadastre um cartão abaixo para selecionar aqui.</p>
+          <p class="field-hint warning" *ngIf="isCardPayment() && !cards().length">Cadastre um cartão na página de cartões para selecionar aqui.</p>
 
           <label class="toggle-row">
             <span>Foi parcelado?</span>
@@ -115,70 +116,26 @@ import { FinanceService } from '../../core/services/finance.service';
         <article class="glass-card helper-card">
           <div class="section-head compact-head">
             <div>
-              <h3 class="section-title">{{ editingCategoryId() ? 'Editar categoria' : 'Categorias' }}</h3>
-              <p class="section-subtitle">Crie ou ajuste limites, cor e ícone.</p>
+              <h3 class="section-title">Cadastros rápidos</h3>
+              <p class="section-subtitle">Categorias e cartões agora ficam em telas separadas para facilitar a gestão.</p>
             </div>
           </div>
-
-          <form [formGroup]="categoryForm" (ngSubmit)="submitCategory()">
-            <input type="text" formControlName="name" placeholder="Ex.: Educação">
-            <div class="field-row">
-              <input type="number" min="0" step="0.01" formControlName="monthlyLimit" placeholder="Limite mensal">
-              <label class="color-picker">
-                <span>Cor da categoria</span>
-                <div class="color-picker-field">
-                  <input type="color" formControlName="colorHex">
-                  <strong [style.color]="categoryForm.controls.colorHex.value">Escolher cor</strong>
-                </div>
-              </label>
-            </div>
-            <input type="text" formControlName="iconKey" placeholder="bookmark">
-            <div class="button-row">
-              <button type="submit">{{ editingCategoryId() ? 'Salvar categoria' : 'Adicionar categoria' }}</button>
-              <button type="button" class="secondary-button" *ngIf="editingCategoryId()" (click)="cancelCategoryEdit()">Cancelar edição</button>
-            </div>
-          </form>
-
-          <div class="list-stack compact-list" *ngIf="categories().length">
-            <article class="mini-item" *ngFor="let category of categories()">
-              <div class="mini-item-main">
-                <span class="color-dot" [style.background]="category.colorHex"></span>
-                <div>
-                  <strong>{{ category.name }}</strong>
-                  <small>Limite {{ category.monthlyLimit | currency:'BRL' }}</small>
-                </div>
-              </div>
-              <button type="button" class="text-button" (click)="startCategoryEdit(category)">Editar</button>
-            </article>
-          </div>
-        </article>
-
-        <article class="glass-card helper-card">
-          <h3 class="section-title">{{ editingCardId() ? 'Editar cartão' : 'Cartões' }}</h3>
-          <form [formGroup]="cardForm" (ngSubmit)="submitCard()">
-            <input type="text" formControlName="name" placeholder="Nome do cartão">
-            <div class="field-row">
-              <input type="text" formControlName="brand" placeholder="Bandeira">
-              <input type="text" maxlength="4" formControlName="lastDigits" placeholder="1234">
-            </div>
-            <label class="toggle-row compact-toggle">
-              <span>Cartão de crédito</span>
-              <input type="checkbox" formControlName="credit">
-            </label>
-            <div class="button-row">
-              <button type="submit">{{ editingCardId() ? 'Salvar cartão' : 'Adicionar cartão' }}</button>
-              <button type="button" class="secondary-button" *ngIf="editingCardId()" (click)="cancelCardEdit()">Cancelar edição</button>
-            </div>
-          </form>
-
-          <div class="list-stack compact-list" *ngIf="cards().length">
-            <article class="mini-item" *ngFor="let card of cards()">
+          <div class="manager-links">
+            <a routerLink="/categorias" class="manager-link-card">
+              <span class="material-icons-outlined">category</span>
               <div>
-                <strong>{{ card.name }}</strong>
-                <small>{{ card.brand }} • **** {{ card.lastDigits }} • {{ card.credit ? 'Crédito' : 'Débito' }}</small>
+                <strong>Gerenciar categorias</strong>
+                <small>{{ categories().length }} cadastrada(s) para seus lançamentos.</small>
               </div>
-              <button type="button" class="text-button" (click)="startCardEdit(card)">Editar</button>
-            </article>
+            </a>
+
+            <a routerLink="/cartoes" class="manager-link-card">
+              <span class="material-icons-outlined">credit_card</span>
+              <div>
+                <strong>Gerenciar cartões</strong>
+                <small>{{ cards().length }} cadastrado(s) para compras no débito e crédito.</small>
+              </div>
+            </a>
           </div>
         </article>
 
@@ -400,6 +357,47 @@ import { FinanceService } from '../../core/services/finance.service';
       margin-top: 16px;
     }
 
+    .manager-links {
+      display: grid;
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .manager-link-card {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 14px;
+      align-items: center;
+      padding: 18px;
+      border-radius: 20px;
+      text-decoration: none;
+      color: inherit;
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid rgba(20, 33, 61, 0.08);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .manager-link-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 30px rgba(20, 33, 61, 0.08);
+    }
+
+    .manager-link-card .material-icons-outlined {
+      width: 48px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+      border-radius: 16px;
+      background: rgba(43, 176, 237, 0.12);
+      color: var(--primary-dark);
+    }
+
+    .manager-link-card small {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+    }
+
     .mini-item {
       display: grid;
       grid-template-columns: 1fr auto;
@@ -484,8 +482,6 @@ export class ExpenseEntryComponent implements OnInit {
   protected readonly message = signal('');
   protected readonly error = signal('');
   protected readonly defaultPayment = signal<PaymentMethod>('PIX');
-  protected readonly editingCategoryId = signal<number | null>(null);
-  protected readonly editingCardId = signal<number | null>(null);
   protected readonly editingExpenseId = signal<number | null>(null);
 
   protected readonly expenseForm = this.formBuilder.nonNullable.group({
@@ -500,20 +496,6 @@ export class ExpenseEntryComponent implements OnInit {
     installmentValue: 0,
     receiptName: '',
     receiptDataUrl: ''
-  });
-
-  protected readonly categoryForm = this.formBuilder.nonNullable.group({
-    name: ['', Validators.required],
-    monthlyLimit: 0,
-    colorHex: '#2BB0ED',
-    iconKey: 'bookmark'
-  });
-
-  protected readonly cardForm = this.formBuilder.nonNullable.group({
-    name: ['', Validators.required],
-    brand: ['', Validators.required],
-    lastDigits: ['', [Validators.required, Validators.minLength(4), Validators.maxLength(4), Validators.pattern('^[0-9]{4}$')]],
-    credit: true
   });
 
   constructor(
@@ -563,92 +545,6 @@ export class ExpenseEntryComponent implements OnInit {
         },
         error: (error) => this.error.set(error.error?.message ?? 'Falha ao salvar lançamento.')
       });
-  }
-
-  protected submitCategory(): void {
-    if (this.categoryForm.invalid) {
-      return;
-    }
-
-    const payload = {
-      name: this.categoryForm.controls.name.value,
-      monthlyLimit: Number(this.categoryForm.controls.monthlyLimit.value),
-      colorHex: this.categoryForm.controls.colorHex.value,
-      iconKey: this.categoryForm.controls.iconKey.value
-    };
-
-    const request$ = this.editingCategoryId()
-      ? this.financeService.updateCategory(this.editingCategoryId() as number, payload)
-      : this.financeService.createCategory(payload);
-
-    request$.subscribe({
-      next: () => {
-        this.message.set(this.editingCategoryId() ? 'Categoria atualizada.' : 'Categoria adicionada.');
-        this.cancelCategoryEdit();
-        this.refreshCollections();
-      },
-      error: (error) => this.error.set(error.error?.message ?? 'Falha ao salvar categoria.')
-    });
-  }
-
-  protected submitCard(): void {
-    if (this.cardForm.invalid) {
-      this.message.set('');
-      this.error.set('Informe nome, bandeira e os 4 últimos dígitos do cartão.');
-      return;
-    }
-
-    this.error.set('');
-    this.message.set('');
-
-    const request$ = this.editingCardId()
-      ? this.financeService.updateCard(this.editingCardId() as number, this.cardForm.getRawValue())
-      : this.financeService.createCard(this.cardForm.getRawValue());
-
-    request$.subscribe({
-      next: () => {
-        const wasEditing = this.editingCardId() !== null;
-        this.cancelCardEdit();
-        this.message.set(wasEditing ? 'Cartão atualizado.' : 'Cartão adicionado.');
-        this.refreshCollections();
-      },
-      error: (error) => this.error.set(error.error?.message ?? 'Falha ao salvar cartão.')
-    });
-  }
-
-  protected startCardEdit(card: Card): void {
-    this.editingCardId.set(card.id);
-    this.cardForm.patchValue({
-      name: card.name,
-      brand: card.brand,
-      lastDigits: card.lastDigits,
-      credit: card.credit
-    });
-  }
-
-  protected cancelCardEdit(): void {
-    this.editingCardId.set(null);
-    this.cardForm.patchValue({ name: '', brand: '', lastDigits: '', credit: true });
-  }
-
-  protected startCategoryEdit(category: Category): void {
-    this.editingCategoryId.set(category.id);
-    this.categoryForm.patchValue({
-      name: category.name,
-      monthlyLimit: category.monthlyLimit,
-      colorHex: category.colorHex,
-      iconKey: category.iconKey
-    });
-  }
-
-  protected cancelCategoryEdit(): void {
-    this.editingCategoryId.set(null);
-    this.categoryForm.patchValue({
-      name: '',
-      monthlyLimit: 0,
-      colorHex: '#2BB0ED',
-      iconKey: 'bookmark'
-    });
   }
 
   protected startExpenseEdit(expense: Expense): void {

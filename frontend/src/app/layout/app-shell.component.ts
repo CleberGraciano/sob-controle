@@ -370,6 +370,8 @@ export class AppShellComponent {
     { path: '/dashboard', label: 'Dashboard', icon: 'space_dashboard' },
     { path: '/perfil', label: 'Perfil', icon: 'person' },
     { path: '/lancamentos', label: 'Lançar gasto', icon: 'add_circle' },
+    { path: '/categorias', label: 'Categorias', icon: 'category' },
+    { path: '/cartoes', label: 'Cartões', icon: 'credit_card' },
     { path: '/relatorios', label: 'Relatórios', icon: 'bar_chart' },
     { path: '/alertas', label: 'Alertas', icon: 'notifications' },
     { path: '/admin', label: 'Super Admin', icon: 'shield' }
